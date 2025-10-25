@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   db:
     image: postgres:16
@@ -25,9 +26,10 @@ services:
       PORT: ${PORT:-8080}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://frontend:4173}
     ports:
-      - "8090:8080"
+      - "8090:8080"  # host:container — évite le conflit 8080 côté host
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      # Busybox 'wget' is available in node:alpine; avoid curl dependency
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -45,15 +47,14 @@ services:
       FROM_B: ${FROM_B:-Tournai}
       TO_B: ${TO_B:-Bruxelles-Central}
 
-  nginx-frontend:
+  # Renommé pour correspondre aux attentes de Dokploy ("frontend")
+  frontend:
     build: ./frontend
     container_name: sncb_frontend
     depends_on:
       - backend
     ports:
-      - "80:80"
-    labels:
-      - "app=sncb-frontend"
+      - "80:80"  # attache le domaine sncb.terminalcommun.be sur ce service
 
 volumes:
   db_data:

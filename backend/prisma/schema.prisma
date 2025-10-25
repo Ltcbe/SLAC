@@ -1,5 +1,56 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-model Trip { id String @id @default(cuid()) direction String origin String destination String scheduledDep DateTime? scheduledArr DateTime? predictedDep DateTime? predictedArr DateTime? actualArr DateTime? status String delayMinutes Int? archived Boolean @default(false) lastUpdate DateTime @default(now()) vehicleId String? events Event[] stops Stop[] @@index([direction, lastUpdate]) @@index([origin, destination]) }
-model Stop { id String @id @default(cuid()) tripId String seq Int station String schedTime DateTime? predTime DateTime? actualTime DateTime? status String? Trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade) @@index([tripId, seq]) }
-model Event { id String @id @default(cuid()) tripId String type String description String? at DateTime @default(now()) Trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade) @@index([tripId, at]) }
+// /backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id           String   @id @default(cuid())
+  direction    String
+  origin       String
+  destination  String
+  scheduledDep DateTime?
+  scheduledArr DateTime?
+  predictedDep DateTime?
+  predictedArr DateTime?
+  actualArr    DateTime?
+  status       String
+  delayMinutes Int?
+  archived     Boolean  @default(false)
+  lastUpdate   DateTime @default(now())
+  vehicleId    String?
+  events       Event[]
+  stops        Stop[]
+
+  @@index([direction, lastUpdate])
+  @@index([origin, destination])
+}
+
+model Stop {
+  id         String   @id @default(cuid())
+  tripId     String
+  seq        Int
+  station    String
+  schedTime  DateTime?
+  predTime   DateTime?
+  actualTime DateTime?
+  status     String?
+  Trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, seq])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  tripId      String
+  type        String
+  description String?
+  at          DateTime @default(now())
+  Trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, at])
+}
