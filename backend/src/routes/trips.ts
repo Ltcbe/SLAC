@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
@@ -37,7 +37,7 @@ const IngestSchema = z.object({
   ).optional()
 });
 
-r.get("/", async (req, res) => {
+r.get("/", async (req: Request, res: Response) => {
   const { direction, archived, minDelay } = req.query as Record<string, string>;
   const where: any = {};
   if (direction === "A" || direction === "B") where.direction = direction;
@@ -53,7 +53,7 @@ r.get("/", async (req, res) => {
   res.json(rows);
 });
 
-r.post("/ingest", async (req, res) => {
+r.post("/ingest", async (req: Request, res: Response) => {
   const parse = IngestSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json(parse.error);
 
@@ -98,6 +98,7 @@ r.post("/ingest", async (req, res) => {
       }))
     });
   }
+
   if (payload.events?.length) {
     await prisma.event.createMany({
       data: payload.events.map(e => ({
