@@ -51,8 +51,9 @@ services:
     container_name: sncb_frontend
     depends_on:
       - backend
+    # ⚠️ Port 80 de l’hôte est occupé -> on mappe sur 8081 côté host
     ports:
-      - "80:80"  # attache le domaine sncb.terminalcommun.be sur ce service
+      - "8081:80"
 
 volumes:
   db_data:
