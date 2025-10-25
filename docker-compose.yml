@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16
@@ -28,7 +26,7 @@ services:
     ports:
       - "8090:8080"  # host:container — évite le conflit 8080 côté host
     healthcheck:
-      # Busybox 'wget' is available in node:alpine; avoid curl dependency
+      # Busybox 'wget' est dispo dans node:alpine
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
@@ -47,7 +45,7 @@ services:
       FROM_B: ${FROM_B:-Tournai}
       TO_B: ${TO_B:-Bruxelles-Central}
 
-  # Renommé pour correspondre aux attentes de Dokploy ("frontend")
+  # Service frontend (nom attendu par Dokploy)
   frontend:
     build: ./frontend
     container_name: sncb_frontend
