@@ -1,0 +1,59 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: sncb_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sncb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sncb}
+      POSTGRES_DB: ${POSTGRES_DB:-sncb}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sncb} -d ${POSTGRES_DB:-sncb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: sncb_backend
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: ${PORT:-8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://frontend:4173}
+    ports:
+      - "8090:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  collector:
+    build: ./collector
+    container_name: sncb_collector
+    depends_on:
+      - backend
+    environment:
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://backend:8080}
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-180}
+      FROM_A: ${FROM_A:-Bruxelles-Central}
+      TO_A: ${TO_A:-Tournai}
+      FROM_B: ${FROM_B:-Tournai}
+      TO_B: ${TO_B:-Bruxelles-Central}
+
+  nginx-frontend:
+    build: ./frontend
+    container_name: sncb_frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    labels:
+      - "app=sncb-frontend"
+
+volumes:
+  db_data:
