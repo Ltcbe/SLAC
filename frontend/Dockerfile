@@ -1,8 +1,14 @@
 # Étape 1 — Build du frontend
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# Copie des manifests (avec lockfile si présent)
+COPY package.json package-lock.json* ./
+
+# Utilise npm ci si le lockfile est là, sinon bascule sur npm install
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Copie du code et build
 COPY . .
 RUN npm run build
 
