@@ -5,9 +5,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-slac}
       POSTGRES_USER: ${POSTGRES_USER:-slac}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slac}
-    # En local tu peux exposer le port; sur Dokploy ce n'est pas nécessaire
-    ports:
-      - "5432:5432"
     volumes:
       - slac_pg:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +12,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      slacnet:
+        aliases: [db]
 
   backend:
     build: ./backend
@@ -22,15 +22,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # En local seulement
-    ports:
-      - "8000:8000"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/healthz"]
       interval: 15s
       timeout: 5s
       retries: 5
+    networks:
+      slacnet:
+        aliases: [backend]
 
   collector:
     build: ./collector
@@ -39,30 +39,37 @@ services:
       backend:
         condition: service_started
     command: ["python", "-m", "slac_collector.main"]
+    networks:
+      slacnet:
+        aliases: [collector]
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    env_file: .env
     depends_on:
       backend:
         condition: service_started
-    # En local -> http://localhost:5173 ; sur Dokploy, tu peux retirer "ports" et gérer le domaine dans l’UI
-    ports:
-      - "5173:80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 15s
       timeout: 5s
       retries: 5
+    networks:
+      slacnet:
+        aliases: [frontend]
 
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
+    networks:
+      slacnet:
+        aliases: [prometheus]
 
 volumes:
   slac_pg:
+
+networks:
+  slacnet:
+    driver: bridge
