@@ -22,11 +22,11 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PORT: ${PORT:-8080}
+      # En mode ingress, le frontend appelle le backend via le réseau docker (backend:8080),
+      # donc CORS n'est pas nécessaire en prod. On garde la variable pour le dev.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://frontend:4173}
-    ports:
-      - "8090:8080"  # host:container — évite le conflit 8080 côté host
+    # ❌ Pas d'exposition de port ici : l'ingress Dokploy ne passe pas par un mapping host
     healthcheck:
-      # Busybox 'wget' est dispo dans node:alpine
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
@@ -51,9 +51,9 @@ services:
     container_name: sncb_frontend
     depends_on:
       - backend
-    # ⚠️ Port 80 de l’hôte est occupé -> on mappe sur 8081 côté host
-    ports:
-      - "8081:80"
+    # ❌ Pas de 'ports:' : l'ingress Dokploy attachera le domaine au port 80 du conteneur
+    # Conteneur écoute sur 80 (voir frontend/Dockerfile + nginx)
 
 volumes:
   db_data:
+
