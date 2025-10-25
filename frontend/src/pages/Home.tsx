@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchTrips, ws } from '../api/client'
-import TripCard from '../components/TripCard'
-import Loading from '../components/Loading'
-import FiltersBar from '../components/FiltersBar'
-import RealtimeBadge from '../components/RealtimeBadge'
 import { useTrips } from '../store/useTrips'
+import TripList from '../components/TripList'
+import FiltersBar from '../components/FiltersBar'
+import TripDetailsDrawer from '../components/TripDetailsDrawer'
+import { RealtimeBadge } from '../components/Badge'
 
 export default function Home() {
   const { items, set, pushEvent } = useTrips()
   const [loading, setLoading] = useState(true)
   const [ok, setOk] = useState(false)
   const [params, setParams] = useState<Record<string, any>>({ page: 1, page_size: 50 })
+  const [open, setOpen] = useState<import('../api/types').Trip | undefined>()
 
   useEffect(() => {
     setLoading(true)
@@ -23,7 +24,7 @@ export default function Home() {
     socket.onclose = () => setOk(false)
     socket.onmessage = (evt) => {
       pushEvent(evt.data)
-      // naïf: refetch à chaque event
+      // refresh simple
       fetchTrips(params).then((r)=> set(r.items))
     }
     return () => socket.close()
@@ -32,17 +33,21 @@ export default function Home() {
   const list = useMemo(()=> items, [items])
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-4">
+    <div className="container-page space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">SLAC</h1>
+        <h1 className="text-xl font-semibold">Trajets • Live</h1>
         <RealtimeBadge ok={ok} />
       </div>
-      <FiltersBar onApply={(p)=> setParams((prev)=> ({...prev, ...p}))} />
-      {loading ? <Loading/> : (
-        <div className="grid md:grid-cols-2 gap-3">
-          {list.map((t)=> <TripCard key={t.id} t={t} />)}
-        </div>
+
+      <FiltersBar initial={params} onApply={(p)=> setParams((prev)=> ({...prev, ...p}))} />
+
+      {loading ? (
+        <div className="card p-6">Chargement…</div>
+      ) : (
+        <TripList items={list} onOpen={setOpen} />
       )}
+
+      <TripDetailsDrawer trip={open} onClose={()=>setOpen(undefined)} />
     </div>
   )
 }
