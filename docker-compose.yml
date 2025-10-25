@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-sncb}
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - sncbnet
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sncb} -d ${POSTGRES_DB:-sncb}"]
       interval: 10s
@@ -22,10 +24,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PORT: ${PORT:-8080}
-      # En mode ingress, le frontend appelle le backend via le réseau docker (backend:8080),
-      # donc CORS n'est pas nécessaire en prod. On garde la variable pour le dev.
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://frontend:4173}
-    # ❌ Pas d'exposition de port ici : l'ingress Dokploy ne passe pas par un mapping host
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    networks:
+      - sncbnet
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
@@ -44,16 +45,21 @@ services:
       TO_A: ${TO_A:-Tournai}
       FROM_B: ${FROM_B:-Tournai}
       TO_B: ${TO_B:-Bruxelles-Central}
+    networks:
+      - sncbnet
 
-  # Service frontend (nom attendu par Dokploy)
   frontend:
     build: ./frontend
     container_name: sncb_frontend
     depends_on:
       - backend
-    # ❌ Pas de 'ports:' : l'ingress Dokploy attachera le domaine au port 80 du conteneur
-    # Conteneur écoute sur 80 (voir frontend/Dockerfile + nginx)
+    networks:
+      - sncbnet
+    # Aucun port exposé : Dokploy gère 80/443
 
 volumes:
   db_data:
 
+networks:
+  sncbnet:
+    driver: bridge
