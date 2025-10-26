@@ -12,61 +12,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      slacnet:
-        aliases: [db]
+    networks: { slacnet: { aliases: [db] } }
 
   backend:
     build: ./backend
     env_file: .env
-    depends_on:
-      db:
-        condition: service_healthy
-    # ⬇️ MIGRATIONS AU DÉMARRAGE, puis uvicorn
+    depends_on: { db: { condition: service_healthy } }
     command: ["/bin/sh", "-lc", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/healthz"]
       interval: 15s
       timeout: 5s
       retries: 5
-    networks:
-      slacnet:
-        aliases: [backend]
+    networks: { slacnet: { aliases: [backend] } }
 
   collector:
     build: ./collector
     env_file: .env
-    depends_on:
-      backend:
-        condition: service_started
+    depends_on: { backend: { condition: service_started } }
     command: ["python", "-m", "slac_collector.main"]
-    networks:
-      slacnet:
-        aliases: [collector]
+    networks: { slacnet: { aliases: [collector] } }
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    depends_on:
-      backend:
-        condition: service_started
+    depends_on: { backend: { condition: service_started } }
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 15s
       timeout: 5s
       retries: 5
-    networks:
-      slacnet:
-        aliases: [frontend]
+    networks: { slacnet: { aliases: [frontend] } }
 
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    networks:
-      slacnet:
-        aliases: [prometheus]
+    networks: { slacnet: { aliases: [prometheus] } }
 
 volumes:
   slac_pg:
