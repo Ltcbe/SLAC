@@ -22,7 +22,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    # ⬇️ MIGRATIONS AU DÉMARRAGE, puis uvicorn
+    command: ["/bin/sh", "-lc", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/healthz"]
       interval: 15s
